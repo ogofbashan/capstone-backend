@@ -32,7 +32,13 @@ def getInfo():
             }
 
     for result in scoreResults:
-        if result.home_team_id==Score.home_team_id:
+        output['side']= {
+        'home_team_id' : result.home_team_id,
+        }
+
+    if output['team']['team_id'] == output['side']['home_team_id']:
+
+        for result in scoreResults:
             output['game'] = {
                 'team_score': result.home_team_score,
                 'home_team' : True,
@@ -41,7 +47,7 @@ def getInfo():
                 'date' : result.date,
                 'game_id' : result.game_id,
             }
-        else:
+    else:
             output['game'] = {
                 'team_score': result.home_team_score,
                 'home_team' : False,
