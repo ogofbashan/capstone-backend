@@ -72,13 +72,23 @@ def getInfo():
 
     for result in statResults:
          output['mvp'] = {
-             'player_id' : result.player_id,
-             'pts' : result.points,
+            'player_id' : result.player_id,
+            'fantasy_score' : result.fantasy_score,
              }
 
-    playerResults=Player.query.filter_by(player_id=output['mvp']['player_id']).all()
+    playerResults=Player.query.filter_by(player_id = output['mvp']['player_id']).all()
     for result in playerResults:
         output['mvp']['player_name']= result.player_name
+        output['mvp']['fantasy_avg']= result.fantasy_avg
+
+    if output['mvp']['fantasy_score'] > (output['mvp']['fantasy_avg']*1.1):
+        output['mvp']['performance']='had a good night'
+    elif output['mvp']['fantasy_score'] < (output['mvp']['fantasy_avg']*.9):
+        output['mvp']['performance']='had a bad night'
+    else:
+        output['mvp']['performance']='had an ok night'
+
+
 
     nextGameResults=Score.query.filter(Score.date>date).filter(or_(Score.home_team_id==id, Score.away_team_id==id)).order_by(Score.date.asc()).limit(1).all()
 
@@ -116,7 +126,8 @@ def colors():
             'team_abb' : result.team_abb,
             'team_name' : result.team_name,
             'color_1' : result.color_1,
-            'color_2' : result.color_2
+            'color_2' : result.color_2,
+            'textcolor' : result.textcolor
             })
     return jsonify({'code' : 200, 'output' : output })
 
@@ -161,7 +172,7 @@ def getScores():
 @app.route('/stats')
 def getStats():
     stats_table = []
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = date.today() - timedelta(days=7)
 
 
     url=f"https://www.balldontlie.io/api/v1/stats?start_date={yesterday}&end_date={yesterday}"
@@ -181,6 +192,12 @@ def getStats():
                 'player_id' : k['player']['id'],
                 'player_name' : k['player']['first_name'] + ' ' + k['player']['last_name'],
                 'pts': k['pts'],
+                'reb' : k['reb'],
+                'stl' : k['stl'],
+                'turnover' : k['turnover'],
+                'blk' : k['blk'],
+                'ast' : k['ast'],
+                'fantasy_score' : k['pts'] + k['reb']*1.2 + k['stl']*2 - k['turnover'] + k['blk']*2 + k['ast']*1.5,
                 'team_id': k['team']['id']})
 
     for player in stats_table:
@@ -189,6 +206,12 @@ def getStats():
         player_id = player['player_id']
         player_name=player['player_name']
         points = player['pts']
+        rebounds=player['reb']
+        steals=player['stl']
+        turnover=player['turnover']
+        blocks=player['blk']
+        assists=player['ast']
+        fantasy_score=player['fantasy_score']
         team_id=player['team_id']
 
         old_player=Player.query.filter_by(player_id=player_id).first()
@@ -198,10 +221,17 @@ def getStats():
             if old_stat:
                 pass
             else:
-                player_stat=Stat(stat_id=stat_id, game_id=game_id, player_id=player_id,points=points)
+                player_stat=Stat(stat_id=stat_id, game_id=game_id, player_id=player_id,points=points, rebounds=rebounds, steals=steals, turnovers=turnover, blocks=blocks, assists=assists, fantasy_score=fantasy_score)
                 db.session.add(player_stat)
+
+                update=Player.query.filter_by(player_id=player_id).first()
+                fantasy_avg = (fantasy_score + Player.fantasy_avg * Player.mean_num)/(Player.mean_num+1)
+
+                update.fantasy_avg=fantasy_avg
+                update.mean_num=Player.mean_num+1
         else:
-            roster= Player(player_id=player_id, player_name=player_name, team_id=team_id)
+            roster= Player(player_id=player_id, player_name=player_name, team_id=team_id, fantasy_avg=0,
+            mean_num=0)
             db.session.add(roster)
 
     db.session.commit()
