@@ -13,6 +13,23 @@ from sqlalchemy import or_
 def index():
     return "Hello Joe!"
 
+@app.route('/api/dropdown', methods=['GET'])
+#populates the dropdown button for the React Webpage. The color info is passed through to alter the CSS.
+def colors():
+    results=[]
+    results=Team.query.order_by(Team.team_id).all()
+    output=[]
+    for result in results:
+        output.append({
+            'team_id' : result.team_id,
+            'team_abb' : result.team_abb,
+            'team_name' : result.team_name,
+            'color_1' : result.color_1,
+            'color_2' : result.color_2,
+            'text_color' : result.text_color
+            })
+    return jsonify({'code' : 200, 'output' : output })
+
 @app.route('/api/getTodaysResults', methods=['GET'])
 # Primary API call from front end to get the results for an individual team.
 def getTodaysInfo():
@@ -113,10 +130,18 @@ def getTodaysInfo():
 
     # The player's results are added, comparing their game stats (pts, rebounds, etc.) to their averages for the season. If they did more than 10% better than their average the API reports that they had a good/bad night, otherwise it states that their night was ok.
 
-    if output['best_performance']['fantasy_score'] > (output['best_performance']['fantasy_avg']*1.1):
+    if output['best_performance']['fantasy_score'] > (output['best_performance']['fantasy_avg']*1.3):
+        output['best_performance']['performance']='had a great night'
+
+    elif output['best_performance']['fantasy_score'] < (output['best_performance']['fantasy_avg']*1.3) and output['best_performance']['fantasy_score'] > (output['best_performance']['fantasy_avg']*1.15) :
         output['best_performance']['performance']='had a good night'
-    elif output['best_performance']['fantasy_score'] < (output['mvp']['fantasy_avg']*.9):
+
+    elif output['best_performance']['fantasy_score'] < (output['best_performance']['fantasy_avg']*.85) and output['best_performance']['fantasy_score'] > (output['best_performance']['fantasy_avg']*.7) :
         output['best_performance']['performance']='had a bad night'
+
+    elif output['best_performance']['fantasy_score'] < (output['mvp']['fantasy_avg']*.7):
+        output['best_performance']['performance']='had a terrible night'
+
     else:
         output['best_performance']['performance']='had an ok night'
 
@@ -146,23 +171,6 @@ def getTodaysInfo():
 
     return jsonify({'code': 200, 'output': output})
 
-
-@app.route('/api/dropdown', methods=['GET'])
-#populates the dropdown button for the React Webpage. The color info is passed through to alter the CSS.
-def colors():
-    results=[]
-    results=Team.query.all()
-    output=[]
-    for result in results:
-        output.append({
-            'team_id' : result.team_id,
-            'team_abb' : result.team_abb,
-            'team_name' : result.team_name,
-            'color_1' : result.color_1,
-            'color_2' : result.color_2,
-            'text_color' : result.text_color
-            })
-    return jsonify({'code' : 200, 'output' : output })
 
 @app.route('/scores')
 # Gets the scores from the night before and updates the database
@@ -207,7 +215,7 @@ def getScores():
 # Updates the stats database
 def getStats():
     stats_table = []
-    yesterday = date.today() - timedelta(days=7)
+    yesterday = date.today() - timedelta(days=1)
 
 
     url=f"https://www.balldontlie.io/api/v1/stats?start_date={yesterday}&end_date={yesterday}"
@@ -268,8 +276,9 @@ def getStats():
             roster= Player(player_id=player_id, player_name=player_name, team_id=team_id, fantasy_avg=0,
             mean_num=0)
             db.session.add(roster)
+            db.session.commit()
 
-            player_stat=Stat(stat_id=stat_id, game_id=game_id, player_id=player_id,points=points, rebounds=rebounds, steals=steals, turnovers=turnover, blocks=blocks, assists=assists, fantasy_score=fantasy_score)
+            player_stat=Stat(stat_id=stat_id, game_id=game_id, player_id=player_id,points=points, rebounds=rebounds, steals=steals, turnovers=turnovers, blocks=blocks, assists=assists, fantasy_score=fantasy_score)
             db.session.add(player_stat)
 
             update=Player.query.filter_by(player_id=player_id).first()
