@@ -6,7 +6,7 @@ class Team(db.Model):
     team_name=db.Column(db.String(50))
     color_1=db.Column(db.String(8))
     color_2=db.Column(db.String(8))
-    textcolor=db.Column(db.String(8))
+    text_color=db.Column(db.String(8))
 
 class Player(db.Model):
     player_id=db.Column(db.Integer, primary_key=True)
