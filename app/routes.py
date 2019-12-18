@@ -181,8 +181,6 @@ def getScores():
     data = urllib.request.urlopen(url).read()
     result = json.loads(data)
 
-    length=result['meta']['total_count']
-
     score_list = []
 
     for k in result['data']:
@@ -222,7 +220,7 @@ def getStats():
     data = urllib.request.urlopen(url).read()
     result = json.loads(data)
 
-    length=result['meta']['total_pages']
+    length=result['meta']['total_pages'] + 1
 
     for i in range(1,length):
         url = f"https://www.balldontlie.io/api/v1/stats?page={i}&start_date={yesterday}&end_date={yesterday}"
