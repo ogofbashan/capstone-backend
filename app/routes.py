@@ -8,20 +8,6 @@ import json
 import urllib.request
 import time
 from sqlalchemy import or_
-import schedule
-
-def job():
-    getScores()
-    getStats()
-    return 'Did it'
-
-schedule.every().day.at("05:00").do(job)
-
-while True:
-    schedule.run_pending()
-    time.sleep(1)
-
-
 
 @app.route('/')
 def index():
